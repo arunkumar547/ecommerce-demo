@@ -9,7 +9,7 @@ const sendToken = (user,statusCode,res) =>{
         expires : new Date(Date.now + process.env.COOKIE_EXPIRES_TIME * 24 *60*60*1000),  // CONVERT INTO MILLISECONDS
         httpOnly:true
     }
-    // httpOnly:true   // http cookie only cant accessed by js code
+    // httpOnly:true   // http cookie only can't accessed by js code
 
     res.status(statusCode).cookie('token',token,options).json({
         success:true,

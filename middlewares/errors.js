@@ -4,7 +4,7 @@ const ErrorHandler = require('../utils/errorHandler')
 module.exports= (err,req,res,next) => {
     err.statusCode=err.statusCode || 500
 
-    if(process.env.NODE_ENV === 'DEVELOPMENT'){
+    if(process.env.NODE_ENV === 'DEVELOPMENT '){
         res.status(err.statusCode).json({
             success:false,
             error:err,
@@ -13,7 +13,7 @@ module.exports= (err,req,res,next) => {
         })
     }
 
-    if(process.env.NODE_ENV === 'PRODUCTION'){
+    if(process.env.NODE_ENV === 'PRODUCTION '){
         let error = {...err}
 
         error.message=err.message
@@ -32,7 +32,7 @@ module.exports= (err,req,res,next) => {
 
         // handling mongoose duplicate key errors
         if(err.code===11000){
-            const message=`Duplicate ${Object.keys(err.keyValue)} entered`
+            const message=`User ${Object.keys(err.keyValue)} already exists`
             error = new ErrorHandler(message,400)
         }
 

@@ -25,7 +25,7 @@ const ProductSchema = new Schema({
     },
     images:[
         {
-            pubic_id:{
+            public_id:{
                 type:String,
                 required:true
             },

@@ -22,7 +22,7 @@ router.post('/register', catchAsyncErrors(async (req, res) => {
         width: 150,
         crop: "scale"
     })
-
+    // console.log(result)
     const { name, email, password } = req.body;
 
     const user = await User.create({
@@ -40,7 +40,7 @@ router.post('/register', catchAsyncErrors(async (req, res) => {
 }))
 
 // login user => /api/auth/login
-router.post('/login', catchAsyncErrors(async (req, res) => {
+router.post('/login', catchAsyncErrors(async (req, res, next) => {
 
     const { email, password } = req.body;
 
@@ -51,6 +51,7 @@ router.post('/login', catchAsyncErrors(async (req, res) => {
 
     //finding user in database
     const user = await User.findOne({ email }).select('+password')
+    // console.log(user)
 
     if (!user) {
         return next(new ErrorHandler('Invalid email or password', 401))
@@ -68,7 +69,7 @@ router.post('/login', catchAsyncErrors(async (req, res) => {
 }))
 
 //forgot password ==> /api/auth/password/forgot
-router.post('/password/forgot', catchAsyncErrors(async (req, res) => {
+router.post('/password/forgot', catchAsyncErrors(async (req, res,next) => {
 
     const user = await User.findOne({ email: req.body.email })
 
@@ -82,8 +83,8 @@ router.post('/password/forgot', catchAsyncErrors(async (req, res) => {
     await user.save({ validateBeforeSave: false })
 
     // create password url
-    // const resetUrl = `${req.protocol}://${req.get('host')}/api/auth/password/reset/${resetToken}`
-    const resetUrl = `${process.env.FRONTEND_URL}password/reset/${resetToken}`
+    const resetUrl = `${req.protocol}://${req.get('host')}/api/auth/password/reset/${resetToken}`
+    // const resetUrl = `${process.env.FRONTEND_URL}/password/reset/${resetToken}`
 
     const message = ` Your password reset token is as follows:\n\n${resetUrl}\n\nIf you 
     have not requested this email, then kindly ignore it`
@@ -111,8 +112,8 @@ router.post('/password/forgot', catchAsyncErrors(async (req, res) => {
 }))
 
 //RESET password ==> /api/auth/password/reset/:token
-router.put('/password/reset', catchAsyncErrors(async (req, res) => {
-
+router.put('/password/reset/:token', catchAsyncErrors(async (req, res) => {
+// console.log("rtrt")
     // hash url token
     const resetPasswordToken = crypto.createHash('sha256').update(req.params.token).digest('hex')
 
@@ -142,57 +143,60 @@ router.put('/password/reset', catchAsyncErrors(async (req, res) => {
 
 // get currently logged in user details => api/auth/me
 router.get('/me', isAuthenticatedUser, catchAsyncErrors(async (req, res) => {
-    console.log("user")
+    // console.log("user")
     const user = await User.findById(req.user.id)
-console.log(user)
+    // console.log(user)
     res.status(200).json({
         success: true,
         user
     })
 }))
 
-// update/change password => api/auth/me
-router.put('/me', catchAsyncErrors(async (req, res) => {
+// update/change password => api/auth/pasword/update
+router.put('/password/update',isAuthenticatedUser, catchAsyncErrors(async (req, res) => {
+    console.log(req.body)
     const user = await User.findById(req.user.id).select('+password')
 
     // check precious user password
-    const isMatched = await user.comparePassword(req.user.oldPassword)
+    const isMatched = await user.comparePassword(req.body.oldPassword)
     if (!isMatched) {
         return next(new ErrorHandler('Old Password is unmatched', 400))
     }
 
-    user.password = req.user.password
+    user.password = req.body.password
     await user.save()
     sendToken(user, 200, res)
 }))
 
 // update user profile => api/auth/me/update
-router.put('/me/update', catchAsyncErrors(async (req, res) => {
+router.put('/me/update',isAuthenticatedUser, catchAsyncErrors(async (req, res) => {
+    // console.log("auth")
+    // console.log(req.user)
     const newUserData = {
         name: req.body.name,
         email: req.body.email
     }
 
     // update avatar
-    if(req.body.avatar !== ''){
+    if (req.body.avatar !== '') {
         const user = await User.findById(req.user.id)
 
-        const image_id=user.avatar.public_id
-        const res=await cloudinary.v2.uploader.destroy(image_id)
+        const image_id = user.avatar.public_id
+        const res = await cloudinary.v2.uploader.destroy(image_id)
 
         const result = await cloudinary.v2.uploader.upload(req.body.avatar, {
             folder: 'avatars',
             width: 150,
             crop: "scale"
         })
-
-        newUserData.avatar={
-            public_id:result.public_id,
-            url:result.secure_url
+        console.log(result)
+        newUserData.avatar = {
+            public_id: result.public_id,
+            url: result.secure_url
         }
     }
 
-    const user = await user.findByIdAndUpdate(req.user.id, newUserData, {
+    const user = await User.findByIdAndUpdate(req.user.id, newUserData, {
         new: true,
         runValidators: true,
         useFindAndModify: false
